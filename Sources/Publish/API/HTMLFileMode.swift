@@ -14,4 +14,18 @@ public enum HTMLFileMode {
     /// HTML index files wrapped in folders should be generated, so that
     /// `section/item` becomes `section/item/index.html`.
     case foldersAndIndexFiles
+
+	case custom((Location) -> Path)
+}
+
+public extension HTMLFileMode {
+	typealias FileModeProvider = (Location) -> HTMLFileMode
+
+	static var literal: Self {
+		.custom { location in location.path }
+	}
+
+	static func format(_ formatString: String) -> Self {
+		.custom { location in Path(String(format: formatString, location.path.string)) }
+	}
 }

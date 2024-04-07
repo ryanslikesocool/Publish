@@ -11,7 +11,7 @@ import CollectionConcurrencyKit
 internal struct HTMLGenerator<Site: Website> {
     let theme: Theme<Site>
     let indentation: Indentation.Kind?
-    let fileMode: HTMLFileMode
+	let fileModeProvider: HTMLFileMode.FileModeProvider
     let context: PublishingContext<Site>
 
     func generate() async throws {
@@ -71,7 +71,7 @@ private extension HTMLGenerator {
                     for: item,
                     indentedBy: indentation,
                     using: theme.makeItemHTML,
-                    fileMode: fileMode
+					fileModeProvider: fileModeProvider
                 )
             }
         }
@@ -83,7 +83,7 @@ private extension HTMLGenerator {
                 for: page,
                 indentedBy: indentation,
                 using: theme.makePageHTML,
-                fileMode: fileMode
+				fileModeProvider: fileModeProvider
             )
         }
     }
@@ -123,16 +123,30 @@ private extension HTMLGenerator {
                 for: detailsPage,
                 indentedBy: indentation,
                 using: { _, _ in detailsHTML },
-                fileMode: fileMode
+				fileModeProvider: fileModeProvider
             )
         }
     }
+
+	func outputHTML<T: Location>(
+		for location: T,
+		indentedBy indentation: Indentation.Kind?,
+		using generator: (T, PublishingContext<Site>) throws -> HTML,
+		fileModeProvider: HTMLFileMode.FileModeProvider
+	) throws {
+		try outputHTML(
+			for: location,
+			indentedBy: indentation,
+			using: generator,
+			fileMode: fileModeProvider(location)
+		)
+	}
 
     func outputHTML<T: Location>(
         for location: T,
         indentedBy indentation: Indentation.Kind?,
         using generator: (T, PublishingContext<Site>) throws -> HTML,
-        fileMode: HTMLFileMode
+		fileMode: HTMLFileMode
     ) throws {
         let html = try generator(location, context)
         let path = filePath(for: location, fileMode: fileMode)
@@ -143,9 +157,11 @@ private extension HTMLGenerator {
     func filePath(for location: Location, fileMode: HTMLFileMode) -> Path {
         switch fileMode {
         case .foldersAndIndexFiles:
-            return "\(location.path)/index.html"
+            "\(location.path)/index.html"
         case .standAloneFiles:
-            return "\(location.path).html"
+            "\(location.path).html"
+		case let .custom(processor):
+			processor(location)
         }
     }
 }

@@ -366,17 +366,33 @@ public extension PublishingStep {
         indentation: Indentation.Kind? = nil,
         fileMode: HTMLFileMode = .foldersAndIndexFiles
     ) -> Self {
-        step(named: "Generate HTML") { context in
-            let generator = HTMLGenerator(
-                theme: theme,
-                indentation: indentation,
-                fileMode: fileMode,
-                context: context
-            )
-
-            try await generator.generate()
-        }
+		generateHTML(
+			withTheme: theme,
+			indentation: indentation,
+			fileModeProvider: { _ in fileMode }
+		)
     }
+
+	/// Generate the website's HTML using a given theme.
+	/// - parameter theme: The theme to use to generate the website's HTML.
+	/// - parameter indentation: How each HTML file should be indented.
+	/// - parameter fileMode: The mode to use when generating each HTML file.
+	static func generateHTML(
+		withTheme theme: Theme<Site>,
+		indentation: Indentation.Kind? = nil,
+		fileModeProvider: @escaping HTMLFileMode.FileModeProvider
+	) -> Self {
+		step(named: "Generate HTML") { context in
+			let generator = HTMLGenerator(
+				theme: theme,
+				indentation: indentation,
+				fileModeProvider: fileModeProvider,
+				context: context
+			)
+
+			try await generator.generate()
+		}
+	}
 
     /// Generate an RSS feed for the website.
     /// - parameter includedSectionIDs: The IDs of the sections which items
